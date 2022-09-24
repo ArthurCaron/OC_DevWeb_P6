@@ -1,4 +1,5 @@
 const fs = require("fs");
+const { validationResult } = require('express-validator');
 const Sauce = require("../models/Sauce");
 
 function getImageUrl(req) {
@@ -18,22 +19,22 @@ exports.getSauce = (req, res) => {
 };
 
 exports.addSauce = (req, res) => {
-    const sauceReq = JSON.parse(req.body.sauce);
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ message: errors.array() });
+    }
 
     if (req.file === undefined) {
         res.status(400).json({ message: "An image is required to create a sauce" });
     } else {
-        delete sauceReq._id;
-        delete sauceReq._userId;
-    
         const sauce = new Sauce({
             userId: req.auth.userId,
-            name: sauceReq.name,
-            manufacturer: sauceReq.manufacturer,
-            description: sauceReq.description,
-            mainPepper: sauceReq.mainPepper,
-            imageUrl: getImageUrl(req),
-            heat: sauceReq.heat,
+            name: req.body.name,
+            manufacturer: req.body.manufacturer,
+            description: req.body.description,
+            mainPepper: req.body.mainPepper,
+            imageUrl: req.imageUrl,
+            heat: req.body.heat,
             likes: 0,
             dislikes: 0,
             usersLiked: [],
@@ -54,16 +55,10 @@ function deleteImage(imageUrl, callback) {
 }
 
 exports.updateSauce = (req, res) => {
-    const sauceReq = req.file
-        ? {
-            ...JSON.parse(req.body.sauce),
-            imageUrl: getImageUrl(req)
-        }
-        : {
-            ...req.body
-        };
-
-    delete sauceReq._userId;
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ message: errors.array() });
+    }
 
     Sauce.findOne({ _id: req.params.id })
         .then(sauce => {
@@ -75,19 +70,19 @@ exports.updateSauce = (req, res) => {
                         .updateOne(
                             { _id: req.params.id },
                             {
-                                name: sauceReq.name,
-                                manufacturer: sauceReq.manufacturer,
-                                description: sauceReq.description,
-                                mainPepper: sauceReq.mainPepper,
-                                imageUrl: sauceReq.imageUrl,
-                                heat: sauceReq.heat,
+                                name: req.body.name,
+                                manufacturer: req.body.manufacturer,
+                                description: req.body.description,
+                                mainPepper: req.body.mainPepper,
+                                imageUrl: req.imageUrl,
+                                heat: req.body.heat,
                             }
                         )
                         .then(() => res.status(200).json({ message: "Sauce updated" }))
                         .catch(error => res.status(400).json({ error }));
                 }
 
-                if (sauceReq.imageUrl !== undefined) {
+                if (req.imageUrl !== undefined) {
                     deleteImage(sauce.imageUrl, saveSauce);
                 } else {
                     saveSauce();

@@ -1,13 +1,14 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const path = require("path");
-const sanitize = require("sanitize");
+const rateLimit = require('express-rate-limit');
+require('dotenv').config()
 
 const userRoutes = require("./routes/user");
 const sauceRoutes = require("./routes/sauce");
 
 mongoose.connect(
-    "mongodb+srv://Hefty5430:b2b3i495rwMC5d3PTzK2DDaVdVFmmL@cluster0.ztmlhtm.mongodb.net/?retryWrites=true&w=majority",
+    `mongodb+srv://${process.env.MONGO_USERNAME}:${process.env.MONGO_PASSWORD}@cluster0.ztmlhtm.mongodb.net/?retryWrites=true&w=majority`,
     {
         useNewUrlParser: true,
         useUnifiedTopology: true
@@ -26,10 +27,15 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 
-app.use(sanitize.middleware);
+const apiLimiter = rateLimit({
+	windowMs: 15 * 60 * 1000, // 15 minutes
+	max: 100, // Limit each IP to 100 requests per `window` (here, per 15 minutes)
+	standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+	legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+})
 
-app.use("/api/auth", userRoutes);
-app.use("/api/sauces", sauceRoutes);
+app.use("/api/auth", apiLimiter, userRoutes);
+app.use("/api/sauces", apiLimiter, sauceRoutes);
 app.use("/images", express.static(path.join(__dirname, "images")));
 
 module.exports = app;

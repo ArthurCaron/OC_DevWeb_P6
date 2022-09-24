@@ -1,9 +1,15 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const { validationResult } = require('express-validator');
 
 const User = require("../models/User");
 
 exports.signup = (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ message: errors.array() });
+    }
+
     bcrypt.hash(req.body.password, 10)
         .then(hash => {
             const user = new User({
@@ -21,7 +27,7 @@ exports.login = (req, res, next) => {
     const user = User.findOne({ email: req.body.email })
         .then(user => {
             if (user === null) {
-                res.status(401).json({ message: "Paire identifiant/mot de passe incorrecte" });
+                return res.status(401).json({ message: "Paire identifiant/mot de passe incorrecte" });
             }
 
             bcrypt.compare(req.body.password, user.password)
@@ -33,7 +39,7 @@ exports.login = (req, res, next) => {
                             userId: user._id,
                             token: jwt.sign(
                                 { userId: user._id },
-                                "RANDOM_TOKEN_SECRET",
+                                process.env.JWT_SECRET_KEY,
                                 { expiresIn: "24h" }
                             ) 
                         });
