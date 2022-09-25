@@ -24,8 +24,8 @@ router.get("/", auth, sauceCtrl.getSauces);
 router.get("/:id", auth, sauceCtrl.getSauce);
 router.post(
     "/", 
-    auth, 
-    multer, 
+    auth,
+    multer,
     parse,
     body("name").trim().not().isEmpty().escape(),
     body("manufacturer").trim().not().isEmpty().escape(),

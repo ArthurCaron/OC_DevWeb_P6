@@ -2,10 +2,6 @@ const fs = require("fs");
 const { validationResult } = require('express-validator');
 const Sauce = require("../models/Sauce");
 
-function getImageUrl(req) {
-    return `${req.protocol}://${req.get("host")}/images/${req.file.filename}`;
-}
-
 exports.getSauces = (req, res) => {
     Sauce.find()
         .then(sauces => res.status(200).json(sauces))
